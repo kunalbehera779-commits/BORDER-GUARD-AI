@@ -14,8 +14,9 @@ import { LiveSurveillancePage } from './pages/LiveSurveillancePage'
 import { PersonnelPage } from './pages/PersonnelPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { VehiclesPage } from './pages/VehiclesPage'
+import { getAlerts, getCameras, getDetectionEvents, getIncidents } from './services/api'
 import { formatDateTime } from './utils/format'
-import type { Alert, CameraFeed, NavView } from './types'
+import type { AiEvent, Alert, CameraFeed, CommandCenterSnapshot, NavView } from './types'
 import './App.css'
 
 function App() {
@@ -23,19 +24,66 @@ function App() {
   const [now, setNow] = useState(() => new Date())
   const [selectedCamera, setSelectedCamera] = useState<CameraFeed | null>(null)
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null)
+  const [snapshot, setSnapshot] = useState<CommandCenterSnapshot>(mockSnapshot)
+  const [detectionEvents, setDetectionEvents] = useState<AiEvent[]>([])
+  const [loading, setLoading] = useState(true)
+  const [apiError, setApiError] = useState<string | null>(null)
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000)
     return () => window.clearInterval(timer)
   }, [])
 
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadLiveData() {
+      try {
+        const [cameras, alerts, incidents, events] = await Promise.all([
+          getCameras(),
+          getAlerts(),
+          getIncidents(),
+          getDetectionEvents(),
+        ])
+
+        if (cancelled) return
+
+        setSnapshot({
+          ...mockSnapshot,
+          cameras,
+          alerts,
+          incidents,
+        })
+        setDetectionEvents(events)
+        setApiError(null)
+      } catch (error) {
+        if (!cancelled) {
+          console.warn('Failed to load live backend data, using fallback mock data:', error)
+          setApiError('Live backend data is currently unavailable. Showing cached prototype data.')
+          setSnapshot(mockSnapshot)
+          setDetectionEvents([])
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadLiveData()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const unreadCount = useMemo(
-    () => mockSnapshot.alerts.filter((alert) => alert.status === 'open').length,
-    [],
+    () => snapshot.alerts.filter((alert) => alert.status === 'open').length,
+    [snapshot.alerts],
   )
 
   const relatedIncident = selectedAlert
-    ? mockSnapshot.incidents.find((incident) => incident.cameraId === selectedAlert.cameraId)
+    ? snapshot.incidents.find((incident) => incident.cameraId === selectedAlert.cameraId)
     : null
 
   function handleViewIncident(alert: Alert) {
@@ -54,30 +102,32 @@ function App() {
           onOpenAlerts={() => setView('alerts')}
         />
         <main className="content">
+          {loading ? <div className="lede" style={{ padding: '0.75rem 0' }}>Loading live border surveillance data…</div> : null}
+          {apiError ? <div className="lede" style={{ padding: '0.75rem 0', color: '#f5c3c3' }}>{apiError}</div> : null}
           {view === 'dashboard' && (
             <DashboardPage
-              snapshot={mockSnapshot}
+              snapshot={snapshot}
               now={now}
               onViewCamera={setSelectedCamera}
               onSelectAlert={setSelectedAlert}
               onViewIncident={handleViewIncident}
             />
           )}
-          {view === 'surveillance' && <LiveSurveillancePage snapshot={mockSnapshot} now={now} />}
+          {view === 'surveillance' && (
+            <LiveSurveillancePage snapshot={snapshot} now={now} detectionEvents={detectionEvents} />
+          )}
           {view === 'alerts' && (
             <AlertsPage
-              snapshot={mockSnapshot}
+              snapshot={snapshot}
               onSelectAlert={setSelectedAlert}
               onViewIncident={handleViewIncident}
             />
           )}
-          {view === 'incidents' && <IncidentsPage snapshot={mockSnapshot} />}
-          {view === 'cameras' && (
-            <CamerasPage snapshot={mockSnapshot} onViewCamera={setSelectedCamera} />
-          )}
-          {view === 'personnel' && <PersonnelPage snapshot={mockSnapshot} />}
-          {view === 'vehicles' && <VehiclesPage snapshot={mockSnapshot} />}
-          {view === 'analytics' && <AnalyticsPage snapshot={mockSnapshot} />}
+          {view === 'incidents' && <IncidentsPage snapshot={snapshot} />}
+          {view === 'cameras' && <CamerasPage snapshot={snapshot} onViewCamera={setSelectedCamera} />}
+          {view === 'personnel' && <PersonnelPage snapshot={snapshot} />}
+          {view === 'vehicles' && <VehiclesPage snapshot={snapshot} />}
+          {view === 'analytics' && <AnalyticsPage snapshot={snapshot} />}
           {view === 'settings' && <SettingsPage />}
         </main>
       </div>

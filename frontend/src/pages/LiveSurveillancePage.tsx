@@ -9,7 +9,7 @@ import { SurveillanceControls } from '../components/surveillance/SurveillanceCon
 import { SurveillanceFooter } from '../components/surveillance/SurveillanceFooter'
 import { SurveillanceTopBar } from '../components/surveillance/SurveillanceTopBar'
 import { cameraMatchesFilter, filterBoxes } from '../components/surveillance/surveillanceUtils'
-import { EVENTS_TODAY, SURVEILLANCE_LATENCY_MS, surveillanceEvents } from '../data/surveillanceMock'
+import { EVENTS_TODAY, SURVEILLANCE_LATENCY_MS } from '../data/surveillanceMock'
 import { formatDateTime } from '../utils/format'
 import type {
   AiEvent,
@@ -23,9 +23,10 @@ import type {
 type LiveSurveillancePageProps = {
   snapshot: CommandCenterSnapshot
   now: Date
+  detectionEvents: AiEvent[]
 }
 
-export function LiveSurveillancePage({ snapshot, now }: LiveSurveillancePageProps) {
+export function LiveSurveillancePage({ snapshot, now, detectionEvents }: LiveSurveillancePageProps) {
   const [selectedId, setSelectedId] = useState(snapshot.cameras[0]?.id ?? 'CAM-01')
   const [paused, setPaused] = useState(false)
   const [pausedAt, setPausedAt] = useState(now)
@@ -41,8 +42,13 @@ export function LiveSurveillancePage({ snapshot, now }: LiveSurveillancePageProp
 
   const feedTime = paused ? pausedAt : now
   const criticalCameraIds = useMemo(
-    () => new Set(surveillanceEvents.filter((event) => event.severity === 'critical').map((event) => event.cameraId)),
-    [],
+    () =>
+      new Set(
+        detectionEvents
+          .filter((event) => event.severity === 'critical')
+          .map((event) => event.cameraId),
+      ),
+    [detectionEvents],
   )
 
   const filteredCameras = useMemo(
@@ -192,7 +198,7 @@ export function LiveSurveillancePage({ snapshot, now }: LiveSurveillancePageProp
           </section>
           {selectedCamera ? <SelectedCameraPanel camera={selectedCamera} /> : null}
         </div>
-        <AiEventsPanel events={surveillanceEvents} activeEventId={activeEventId} onReview={handleReviewEvent} />
+        <AiEventsPanel events={detectionEvents} activeEventId={activeEventId} onReview={handleReviewEvent} />
       </div>
 
       <SurveillanceFooter
