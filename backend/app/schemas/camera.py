@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class DetectionLabelSchema(BaseModel):
@@ -23,6 +23,8 @@ class BoundingBoxSchema(BaseModel):
 
 
 class CameraBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     name: str
     sector: str = "Sector Alpha"

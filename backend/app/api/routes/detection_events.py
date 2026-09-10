@@ -27,7 +27,14 @@ def create_detection_event(event: DetectionEventCreate, db: Session = Depends(ge
     if existing:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Detection event already exists")
 
-    db_event = DetectionEvent(**event.model_dump(by_alias=True))
+    payload = event.model_dump()
+    db_event = DetectionEvent(
+        id=payload["id"], severity=payload["severity"], name=payload["name"],
+        camera_id=payload["cameraId"], camera_name=payload["cameraName"], timestamp=payload["timestamp"],
+        confidence=payload["confidence"], status=payload["status"], detail=payload.get("detail"),
+        zone_id=payload.get("zoneId"), event_type=payload.get("eventType"), risk_score=payload.get("riskScore"),
+        environment_context=payload.get("environmentContext"),
+    )
     db.add(db_event)
     db.commit()
     db.refresh(db_event)

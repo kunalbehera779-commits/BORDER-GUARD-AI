@@ -96,7 +96,7 @@ function App() {
       <Sidebar activeView={view} onNavigate={setView} />
       <div className="app-main">
         <Header
-          snapshot={mockSnapshot}
+          snapshot={snapshot}
           now={now}
           unreadCount={unreadCount}
           onOpenAlerts={() => setView('alerts')}

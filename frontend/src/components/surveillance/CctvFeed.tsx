@@ -1,4 +1,4 @@
-import { forwardRef } from 'react'
+import { forwardRef, useEffect, useRef } from 'react'
 import { formatClock, formatTime } from '../../utils/format'
 import type { BoundingBox, CameraFeed } from '../../types'
 import { signalLabel } from './surveillanceUtils'
@@ -20,32 +20,63 @@ export const CctvFeed = forwardRef<HTMLDivElement, CctvFeedProps>(function CctvF
   ref,
 ) {
   const envClass = camera.environment.toLowerCase().replace(/[^a-z]+/g, '-')
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const hasDemoVideo = camera.id === 'CAM-01'
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    if (paused) {
+      video.pause()
+      return
+    }
+
+    void video.play().catch(() => undefined)
+  }, [paused])
 
   return (
     <div
       ref={ref}
-      className={`cctv-frame scene-${camera.scene} surv-feed env-${envClass} ${paused ? 'is-paused' : ''} ${compact ? 'is-compact' : ''} ${active ? 'is-event-focused' : ''}`}
+      className={`cctv-frame scene-${camera.scene} surv-feed env-${envClass} ${hasDemoVideo ? 'has-demo-video' : ''} ${paused ? 'is-paused' : ''} ${compact ? 'is-compact' : ''} ${active ? 'is-event-focused' : ''}`}
     >
+      {hasDemoVideo ? (
+        <video
+          ref={videoRef}
+          className="surv-demo-video"
+          src="/Demo/cam01.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          aria-label="Simulated recorded CCTV footage for CAM-01 North Gate"
+        />
+      ) : null}
       <div className={`surv-noise ${paused ? '' : 'is-live'}`} />
       <div className={`scanlines ${paused ? '' : 'is-scrolling'}`} />
       <div className="cctv-vignette" />
-      <div className={`surv-silhouettes scene-${camera.scene}`} aria-hidden="true">
-        {camera.scene === 'gate' ? (
-          <>
-            <span className="surv-person left" />
-            <span className="surv-vehicle right" />
-          </>
-        ) : null}
-        {camera.scene === 'river' ? <span className="surv-person river" /> : null}
-        {camera.scene === 'river' ? <span className="surv-animal river" /> : null}
-        {camera.scene === 'checkpoint' ? <span className="surv-vehicle checkpoint" /> : null}
-        {camera.scene === 'hill' ? <span className="surv-aerial" /> : null}
-      </div>
-      <div className="surv-depth-grid" aria-hidden="true" />
+      {!hasDemoVideo ? (
+        <>
+          <div className={`surv-silhouettes scene-${camera.scene}`} aria-hidden="true">
+            {camera.scene === 'gate' ? (
+              <>
+                <span className="surv-person left" />
+                <span className="surv-vehicle right" />
+              </>
+            ) : null}
+            {camera.scene === 'river' ? <span className="surv-person river" /> : null}
+            {camera.scene === 'river' ? <span className="surv-animal river" /> : null}
+            {camera.scene === 'checkpoint' ? <span className="surv-vehicle checkpoint" /> : null}
+            {camera.scene === 'hill' ? <span className="surv-aerial" /> : null}
+          </div>
+          <div className="surv-depth-grid" aria-hidden="true" />
+        </>
+      ) : null}
 
       {camera.virtualFence ? (
         <div className={`surv-fence ${camera.fenceBreached ? 'is-breach' : ''}`}>
-          <span>RESTRICTED ZONE</span>
+          <span>{camera.fenceBreached ? 'POSSIBLE INTRUSION' : 'RESTRICTED ZONE · FENCE ACTIVE'}</span>
         </div>
       ) : null}
 
@@ -71,7 +102,7 @@ export const CctvFeed = forwardRef<HTMLDivElement, CctvFeedProps>(function CctvF
         : null}
 
       {camera.fenceBreached && showOverlays ? (
-        <div className="surv-breach-banner">VIRTUAL FENCE BREACH</div>
+        <div className="surv-breach-banner">RESTRICTED-ZONE BREACH · REVIEW</div>
       ) : null}
 
       {camera.scene === 'hill' && camera.currentEvent ? (
@@ -83,9 +114,9 @@ export const CctvFeed = forwardRef<HTMLDivElement, CctvFeedProps>(function CctvF
           <span className="mono">{camera.id}</span>
           <span>{camera.name}</span>
         </span>
-        <span className={paused ? 'live-chip paused' : 'live-chip'}>
-          <span className={paused ? 'dot-offline' : 'pulse pulse-red'} />
-          {paused ? 'PAUSED' : 'LIVE'}
+        <span className={paused || camera.status !== 'online' ? 'live-chip paused' : 'live-chip'}>
+          <span className={paused || camera.status !== 'online' ? 'dot-offline' : 'pulse pulse-red'} />
+          {paused ? 'PAUSED' : camera.status === 'online' ? 'ONLINE' : camera.status.toUpperCase()}
         </span>
       </div>
       <div className="cctv-overlay bottom">

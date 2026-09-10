@@ -27,7 +27,13 @@ def create_alert(alert: AlertCreate, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Alert already exists")
 
-    db_alert = Alert(**alert.model_dump(by_alias=True))
+    payload = alert.model_dump()
+    db_alert = Alert(
+        id=payload["id"], title=payload["title"], severity=payload["severity"],
+        camera_id=payload["cameraId"], camera_name=payload["cameraName"], timestamp=payload["timestamp"],
+        status=payload["status"], details=payload.get("details"), event_id=payload.get("eventId"),
+        zone_id=payload.get("zoneId"), risk_score=payload.get("riskScore"),
+    )
     db.add(db_alert)
     db.commit()
     db.refresh(db_alert)

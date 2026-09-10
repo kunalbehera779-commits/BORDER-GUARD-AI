@@ -21,3 +21,7 @@ class DetectionEvent(Base):
     track_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
     detection_kind: Mapped[str | None] = mapped_column(String(50), nullable=True)
     event_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    zone_id: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
+    risk_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    event_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    environment_context: Mapped[str | None] = mapped_column(Text, nullable=True)

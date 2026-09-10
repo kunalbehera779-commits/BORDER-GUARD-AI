@@ -37,7 +37,7 @@ export function AiEventsPanel({ events, activeEventId, onReview }: AiEventsPanel
             <p className="surv-event-meta">
               <span className="mono">{event.cameraName}</span>
               <span className="surv-event-camera-dot" />
-              <span>AI track linked</span>
+              <span>{event.name.toLowerCase().includes('fence') ? 'Restricted zone linked' : 'AI track linked'}</span>
             </p>
             <div className="surv-event-stats">
               <span>Confidence <strong className="mono">{event.confidence}%</strong></span>

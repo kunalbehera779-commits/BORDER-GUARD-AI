@@ -4,7 +4,7 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 from app.db.database import Base
-from app.models import Alert, Camera, DetectionEvent, Incident
+from app.models import Alert, Camera, Detection, DetectionEvent, Evidence, Incident, Zone
 from app.core.config import settings
 
 config = context.config

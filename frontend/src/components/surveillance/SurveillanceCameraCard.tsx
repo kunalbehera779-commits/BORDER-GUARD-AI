@@ -50,7 +50,11 @@ export function SurveillanceCameraCard({
       <div className="surv-cam-meta">
         <div>
           <p className="mono surv-cam-id">{camera.id}</p>
-          <p>{camera.name}</p>
+          <p>{camera.name} <span className="muted">· {camera.sector}</span></p>
+          <p className="surv-cam-status">
+            <span className={`status-dot status-${camera.status}`} />
+            {camera.status.toUpperCase()} · {camera.detections.length} detections · AI {camera.aiStatus.toUpperCase()}
+          </p>
         </div>
         <div className="surv-cam-chips">
           {camera.detections.map((item) => (

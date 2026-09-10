@@ -27,7 +27,15 @@ def create_incident(incident: IncidentCreate, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incident already exists")
 
-    db_incident = Incident(**incident.model_dump())
+    payload = incident.model_dump()
+    db_incident = Incident(
+        id=payload["id"], event_type=payload["eventType"], camera_id=payload["cameraId"],
+        camera_name=payload["cameraName"], severity=payload["severity"], timestamp=payload["timestamp"],
+        status=payload["status"], details=payload.get("details"), event_id=payload.get("eventId"),
+        object_type=payload.get("objectType"), tracking_id=payload.get("trackingId"),
+        confidence=payload.get("confidence"), evidence_path=payload.get("evidencePath"),
+        operator_notes=payload.get("operatorNotes"),
+    )
     db.add(db_incident)
     db.commit()
     db.refresh(db_incident)

@@ -10,7 +10,7 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react'
-import type { CameraFeed, DetectionFilter, GridLayoutMode } from '../../types'
+import type { CameraFeed, DetectionFilter, GridLayoutMode, Severity } from '../../types'
 
 type SurveillanceControlsProps = {
   cameras: CameraFeed[]
@@ -20,6 +20,7 @@ type SurveillanceControlsProps = {
   showOverlays: boolean
   layout: GridLayoutMode
   detectionFilter: DetectionFilter
+  eventSeverity: Severity | 'all'
   onTogglePause: () => void
   onSnapshot: () => void
   onFullscreen: () => void
@@ -27,6 +28,7 @@ type SurveillanceControlsProps = {
   onLayout: (layout: GridLayoutMode) => void
   onToggleOverlays: () => void
   onDetectionFilter: (filter: DetectionFilter) => void
+  onEventSeverity: (severity: Severity | 'all') => void
   onSelectCamera: (id: string) => void
 }
 
@@ -47,6 +49,7 @@ export function SurveillanceControls({
   showOverlays,
   layout,
   detectionFilter,
+  eventSeverity,
   onTogglePause,
   onSnapshot,
   onFullscreen,
@@ -54,6 +57,7 @@ export function SurveillanceControls({
   onLayout,
   onToggleOverlays,
   onDetectionFilter,
+  onEventSeverity,
   onSelectCamera,
 }: SurveillanceControlsProps) {
   return (
@@ -124,6 +128,19 @@ export function SurveillanceControls({
                 {option.label}
               </option>
             ))}
+          </select>
+        </label>
+        <label className="surv-select">
+          Event severity
+          <select
+            value={eventSeverity}
+            onChange={(event) => onEventSeverity(event.target.value as Severity | 'all')}
+          >
+            <option value="all">All severities</option>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
           </select>
         </label>
         <label className="surv-select">

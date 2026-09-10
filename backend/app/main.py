@@ -6,8 +6,15 @@ from app.api.routes.cameras import router as cameras_router
 from app.api.routes.detection_events import router as detection_events_router
 from app.api.routes.health import router as health_router
 from app.api.routes.incidents import router as incidents_router
+from app.api.routes.video import router as video_router
+from app.api.routes.websocket import router as websocket_router
+from app.api.routes.zones import router as zones_router
 from app.core.config import settings
 from app.db.database import Base, engine
+from app import models
+import logging
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 
 app = FastAPI(title=settings.app_name, version="0.1.0", debug=settings.debug)
 
@@ -24,6 +31,9 @@ app.include_router(cameras_router, prefix="/api")
 app.include_router(alerts_router, prefix="/api")
 app.include_router(incidents_router, prefix="/api")
 app.include_router(detection_events_router, prefix="/api")
+app.include_router(zones_router, prefix="/api")
+app.include_router(video_router, prefix="/api")
+app.include_router(websocket_router)
 
 
 @app.on_event("startup")

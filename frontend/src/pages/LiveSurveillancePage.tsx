@@ -10,7 +10,7 @@ import { SurveillanceFooter } from '../components/surveillance/SurveillanceFoote
 import { SurveillanceTopBar } from '../components/surveillance/SurveillanceTopBar'
 import { cameraMatchesFilter, filterBoxes } from '../components/surveillance/surveillanceUtils'
 import { EVENTS_TODAY, SURVEILLANCE_LATENCY_MS } from '../data/surveillanceMock'
-import { formatDateTime } from '../utils/format'
+import { formatClock, formatDateTime } from '../utils/format'
 import type {
   AiEvent,
   CameraFeed,
@@ -18,6 +18,7 @@ import type {
   CommandCenterSnapshot,
   DetectionFilter,
   GridLayoutMode,
+  Severity,
 } from '../types'
 
 type LiveSurveillancePageProps = {
@@ -34,7 +35,9 @@ export function LiveSurveillancePage({ snapshot, now, detectionEvents }: LiveSur
   const [showOverlays, setShowOverlays] = useState(true)
   const [layout, setLayout] = useState<GridLayoutMode>('wall')
   const [detectionFilter, setDetectionFilter] = useState<DetectionFilter>('all')
+  const [eventSeverity, setEventSeverity] = useState<Severity | 'all'>('all')
   const [cameraFilter, setCameraFilter] = useState<CameraWallFilter>('all')
+  const [sector, setSector] = useState(snapshot.sector)
   const [reviewEvent, setReviewEvent] = useState<AiEvent | null>(null)
   const [activeEventId, setActiveEventId] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -56,8 +59,20 @@ export function LiveSurveillancePage({ snapshot, now, detectionEvents }: LiveSur
     [snapshot.cameras, cameraFilter, criticalCameraIds],
   )
 
+  const filteredEvents = useMemo(
+    () => eventSeverity === 'all' ? detectionEvents : detectionEvents.filter((event) => event.severity === eventSeverity),
+    [detectionEvents, eventSeverity],
+  )
+
   const selectedCamera =
     snapshot.cameras.find((camera) => camera.id === selectedId) ?? snapshot.cameras[0] ?? null
+
+  const selectedEvents = selectedCamera
+    ? detectionEvents.filter((event) => event.cameraId === selectedCamera.id).slice(0, 4)
+    : []
+
+  const environment = selectedCamera?.environment ?? 'Daylight'
+  const visibility = environment === 'Fog' ? 'Reduced' : environment === 'Low Light' || environment === 'Dust/Haze' ? 'Limited' : 'Clear'
 
   function showToast(message: string) {
     setToast(message)
@@ -109,12 +124,17 @@ export function LiveSurveillancePage({ snapshot, now, detectionEvents }: LiveSur
   return (
     <div className="surv-page">
       <SurveillanceTopBar
-        sector={snapshot.sector}
+        sector={sector}
+        sectorOptions={[...new Set(snapshot.cameras.map((camera) => camera.sector))]}
+        environment={environment}
+        visibility={visibility}
         camerasOnline={snapshot.systemHealth.camerasOnline}
         camerasTotal={snapshot.systemHealth.camerasTotal}
         aiEngine={snapshot.systemHealth.aiEngine}
         now={now}
+        lastSync={formatClock(new Date(snapshot.lastSync))}
         autoRefresh={!paused}
+        onSectorChange={setSector}
       />
 
       <CameraFilters value={cameraFilter} onChange={setCameraFilter} />
@@ -127,6 +147,7 @@ export function LiveSurveillancePage({ snapshot, now, detectionEvents }: LiveSur
         showOverlays={showOverlays}
         layout={layout}
         detectionFilter={detectionFilter}
+        eventSeverity={eventSeverity}
         onTogglePause={handlePause}
         onSnapshot={handleSnapshot}
         onFullscreen={handleFullscreen}
@@ -134,6 +155,7 @@ export function LiveSurveillancePage({ snapshot, now, detectionEvents }: LiveSur
         onLayout={setLayout}
         onToggleOverlays={() => setShowOverlays((value) => !value)}
         onDetectionFilter={setDetectionFilter}
+        onEventSeverity={setEventSeverity}
         onSelectCamera={setSelectedId}
       />
 
@@ -196,9 +218,19 @@ export function LiveSurveillancePage({ snapshot, now, detectionEvents }: LiveSur
               selectedFeedRef={selectedFeedRef}
             />
           </section>
-          {selectedCamera ? <SelectedCameraPanel camera={selectedCamera} /> : null}
+          {selectedCamera ? (
+            <SelectedCameraPanel
+              camera={selectedCamera}
+              now={feedTime}
+              paused={paused}
+              muted={muted}
+              showOverlays={showOverlays}
+              boxes={boxesFor(selectedCamera)}
+              recentEvents={selectedEvents}
+            />
+          ) : null}
         </div>
-        <AiEventsPanel events={detectionEvents} activeEventId={activeEventId} onReview={handleReviewEvent} />
+        <AiEventsPanel events={filteredEvents} activeEventId={activeEventId} onReview={handleReviewEvent} />
       </div>
 
       <SurveillanceFooter
